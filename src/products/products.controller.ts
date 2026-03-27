@@ -1,15 +1,8 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ListQueryDto } from 'src/common/dto/list-query.dto';
 import {
   ApiBody,
   ApiCreatedResponse,
@@ -20,6 +13,7 @@ import {
   ApiUnauthorizedResponse,
   ApiTooManyRequestsResponse,
   ApiParam,
+  ApiQuery,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
@@ -125,6 +119,11 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all products' })
+  @ApiQuery({ name: 'page', required: false, schema: { type: 'integer', minimum: 1, default: 1 } })
+  @ApiQuery({ name: 'limit', required: false, schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 } })
+  @ApiQuery({ name: 'search', required: false, schema: { type: 'string' } })
+  @ApiQuery({ name: 'sortBy', required: false, schema: { type: 'string', enum: ['name', 'price', 'id'], default: 'name' } })
+  @ApiQuery({ name: 'sortOrder', required: false, schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' } })
   @ApiOkResponse({
     description: 'List all products',
     schema: {
@@ -148,6 +147,15 @@ export class ProductsController {
             },
           },
         },
+        meta: {
+          type: 'object',
+          properties: {
+            page: { type: 'number', example: 1 },
+            limit: { type: 'number', example: 10 },
+            total: { type: 'number', example: 63 },
+            totalPages: { type: 'number', example: 7 },
+          },
+        },
       },
     },
     headers: {
@@ -158,8 +166,8 @@ export class ProductsController {
       },
     },
   })
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query() query: ListQueryDto) {
+    return this.productsService.findAll(query);
   }
 
   @Get(':id')
