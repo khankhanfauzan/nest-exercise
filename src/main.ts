@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -11,11 +11,16 @@ import { rateLimitMiddleware } from './common/middleware/rate-limitter.middlewar
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Add prefix and versioning 
+  app.setGlobalPrefix('/api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })
+
   // Security & Performance Middleware
   app.use(helmet());
   app.use(compression());
   app.use(morgan('dev'));
   app.use(rateLimitMiddleware);
+
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.useGlobalPipes(
@@ -35,7 +40,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }

@@ -61,9 +61,9 @@ import {
     },
   },
 })
-@Controller('products')
+@Controller({ path: 'products', version: '1' })
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create new product' })
