@@ -1,15 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from 'src/types/product.type';
 import { ApiResponse } from 'src/types/api-response.interface';
 import { ProductsRepository } from './products.repository';
+import { CategoriesRepository } from 'src/categories/categories.repository';
+import { ListQuery } from 'src/common/types/list-query.type';
 
 @Injectable()
 export class ProductsService {
-  constructor(private productsRepository: ProductsRepository) { }
+  constructor(private productsRepository: ProductsRepository, private categoriesRepository: CategoriesRepository) { }
 
   create(createProductDto: CreateProductDto) {
+    if (createProductDto.categoryIds && createProductDto.categoryIds.length > 0) {
+      const allCategoryIds = new Set(this.categoriesRepository.findAll().map((c) => c.id));
+      const invalidIds = createProductDto.categoryIds.filter((id) => !allCategoryIds.has(id));
+      if (invalidIds.length > 0) {
+        throw new BadRequestException(`Invalid categoryIds: ${invalidIds.join(', ')}`);
+      }
+    }
     const newProduct: Product = {
       id: (this.productsRepository.findAll().length + 1).toString(),
       ...createProductDto,
@@ -22,50 +31,71 @@ export class ProductsService {
     };
   }
 
-  findAll(params?: { page?: number; limit?: number; search?: string; sortBy?: 'name' | 'price' | 'id'; sortOrder?: 'asc' | 'desc' }): ApiResponse<Product[]> {
+  findAll(params?: ListQuery): ApiResponse<Product[]> {
     const page = Math.max(1, Number(params?.page) || 1);
     const requestedLimit = Number(params?.limit) || 10;
     const limit = Math.min(Math.max(1, requestedLimit), 50);
     const allProducts = this.productsRepository.findAll();
-    const searchKeyword = (params?.search ?? '').toString().trim().toLowerCase();
-    const allowedSortFields: Array<'name' | 'price' | 'id'> = ['name', 'price', 'id'];
-    const sortBy: 'name' | 'price' | 'id' = allowedSortFields.includes((params?.sortBy as any)) ? (params?.sortBy as any) : 'id';
-    const sortOrder: 'asc' | 'desc' = params?.sortOrder === 'desc' ? 'desc' : 'asc';
+    const searchKeyword = (params?.search ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
+    const isValidSortField = (
+      field: unknown,
+    ): field is 'name' | 'price' | 'id' =>
+      field === 'name' || field === 'price' || field === 'id';
+    const sortBy: 'name' | 'price' | 'id' = isValidSortField(params?.sortBy)
+      ? params.sortBy
+      : 'id';
+    const sortOrder: 'asc' | 'desc' =
+      params?.sortOrder === 'desc' ? 'desc' : 'asc';
 
+    const categoriesMap = new Map(
+      this.categoriesRepository.findAll().map((c) => [c.id, c.name.toLowerCase()]),
+    );
     const filteredProducts = searchKeyword
       ? allProducts.filter((product) => {
         const nameLower = product.name?.toLowerCase() ?? '';
         const descriptionLower = product.description?.toLowerCase() ?? '';
-        const categoryLower = (product as any).category?.toLowerCase() ?? '';
+        const categoryTextLower = (product.categoryIds ?? [])
+          .map((id) => categoriesMap.get(id) ?? '')
+          .join(' ');
         return (
           nameLower.includes(searchKeyword) ||
           descriptionLower.includes(searchKeyword) ||
-          categoryLower.includes(searchKeyword)
+          categoryTextLower.includes(searchKeyword)
         );
       })
       : allProducts;
 
-    const sortedProducts = filteredProducts.slice().sort((productA, productB) => {
-      let comparisonResult = 0;
-      if (sortBy === 'price') {
-        comparisonResult = (productA.price ?? 0) - (productB.price ?? 0);
-      } else if (sortBy === 'id') {
-        const productAIdNumber = Number(productA.id);
-        const productBIdNumber = Number(productB.id);
-        if (!Number.isNaN(productAIdNumber) && !Number.isNaN(productBIdNumber)) {
-          comparisonResult = productAIdNumber - productBIdNumber;
+    const sortedProducts = filteredProducts
+      .slice()
+      .sort((productA, productB) => {
+        let comparisonResult = 0;
+        if (sortBy === 'price') {
+          comparisonResult = (productA.price ?? 0) - (productB.price ?? 0);
+        } else if (sortBy === 'id') {
+          const productAIdNumber = Number(productA.id);
+          const productBIdNumber = Number(productB.id);
+          if (
+            !Number.isNaN(productAIdNumber) &&
+            !Number.isNaN(productBIdNumber)
+          ) {
+            comparisonResult = productAIdNumber - productBIdNumber;
+          } else {
+            comparisonResult = String(productA.id).localeCompare(
+              String(productB.id),
+            );
+          }
         } else {
-          comparisonResult = String(productA.id).localeCompare(String(productB.id));
+          comparisonResult = String(productA.name ?? '').localeCompare(
+            String(productB.name ?? ''),
+            undefined,
+            { sensitivity: 'base' },
+          );
         }
-      } else {
-        comparisonResult = String(productA.name ?? '').localeCompare(
-          String(productB.name ?? ''),
-          undefined,
-          { sensitivity: 'base' },
-        );
-      }
-      return sortOrder === 'desc' ? -comparisonResult : comparisonResult;
-    });
+        return sortOrder === 'desc' ? -comparisonResult : comparisonResult;
+      });
 
     const total = sortedProducts.length;
     const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -92,6 +122,13 @@ export class ProductsService {
   }
 
   update(id: string, updateProductDto: UpdateProductDto): ApiResponse<Product> {
+    if (updateProductDto.categoryIds && updateProductDto.categoryIds.length > 0) {
+      const allCategoryIds = new Set(this.categoriesRepository.findAll().map((c) => c.id));
+      const invalidIds = updateProductDto.categoryIds.filter((cid) => !allCategoryIds.has(cid));
+      if (invalidIds.length > 0) {
+        throw new BadRequestException(`Invalid categoryIds: ${invalidIds.join(', ')}`);
+      }
+    }
     const product = this.productsRepository.update(id, updateProductDto);
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);

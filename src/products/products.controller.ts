@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -80,6 +89,11 @@ export class ProductsController {
               example: 'Brand new shoes',
               nullable: true,
             },
+            categoryIds: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['2'],
+            },
           },
         },
       },
@@ -119,11 +133,27 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all products' })
-  @ApiQuery({ name: 'page', required: false, schema: { type: 'integer', minimum: 1, default: 1 } })
-  @ApiQuery({ name: 'limit', required: false, schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 } })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    schema: { type: 'integer', minimum: 1, default: 1 },
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
+  })
   @ApiQuery({ name: 'search', required: false, schema: { type: 'string' } })
-  @ApiQuery({ name: 'sortBy', required: false, schema: { type: 'string', enum: ['name', 'price', 'id'], default: 'name' } })
-  @ApiQuery({ name: 'sortOrder', required: false, schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' } })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    schema: { type: 'string', enum: ['name', 'price', 'id'], default: 'name' },
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+  })
   @ApiOkResponse({
     description: 'List all products',
     schema: {
@@ -143,6 +173,11 @@ export class ProductsController {
                 type: 'string',
                 example: 'Brand new shoes',
                 nullable: true,
+              },
+              categoryIds: {
+                type: 'array',
+                items: { type: 'string' },
+                example: ['2'],
               },
             },
           },
@@ -191,6 +226,11 @@ export class ProductsController {
               example: 'Brand new shoes',
               nullable: true,
             },
+            categoryIds: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['2'],
+            },
           },
         },
       },
@@ -232,6 +272,11 @@ export class ProductsController {
               type: 'string',
               example: 'Brand new shoes',
               nullable: true,
+            },
+            categoryIds: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['2'],
             },
           },
         },

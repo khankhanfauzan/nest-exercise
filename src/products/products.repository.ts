@@ -11,7 +11,7 @@ export class ProductsRepository {
   }
 
   findOne(id: string): Product | undefined {
-    return this.products.find((p) => p.id === id);
+    return this.products.find((product) => product.id === id);
   }
 
   create(product: Product): Product {
@@ -20,14 +20,14 @@ export class ProductsRepository {
   }
 
   update(id: string, updates: Partial<Product>): Product | undefined {
-    const index = this.products.findIndex((p) => p.id === id);
+    const index = this.products.findIndex((product) => product.id === id);
     if (index === -1) return undefined;
     this.products[index] = { ...this.products[index], ...updates };
     return this.products[index];
   }
 
   remove(id: string): boolean {
-    const index = this.products.findIndex((p) => p.id === id);
+    const index = this.products.findIndex((product) => product.id === id);
     if (index === -1) return false;
     this.products.splice(index, 1);
     return true;

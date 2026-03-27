@@ -11,9 +11,9 @@ import { rateLimitMiddleware } from './common/middleware/rate-limitter.middlewar
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Add prefix and versioning 
+  // Add prefix and versioning
   app.setGlobalPrefix('/api');
-  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   // Security & Performance Middleware
   app.use(helmet());
