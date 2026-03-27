@@ -8,5 +8,6 @@ import { CategoriesModule } from 'src/categories/categories.module';
   imports: [CategoriesModule],
   controllers: [ProductsController],
   providers: [ProductsService, ProductsRepository],
+  exports: [ProductsRepository],
 })
 export class ProductsModule { }
